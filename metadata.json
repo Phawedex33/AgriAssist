@@ -4,5 +4,9 @@
   "requestFramePermissions": [
     "camera"
   ],
-  "majorCapabilities": []
+  "majorCapabilities": [
+    "AI Diagnosis",
+    "Expert Chat",
+    "Field Records"
+  ]
 }

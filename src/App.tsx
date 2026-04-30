@@ -13,10 +13,13 @@ import {
   ChevronRight,
   Info,
   WifiOff,
-  Loader2
+  Loader2,
+  Droplets
 } from 'lucide-react';
 import { HomeView } from './components/HomeView';
 import { DiagnosisView } from './components/DiagnosisView';
+import { WateringView } from './components/WateringView';
+import { ChatView } from './components/ChatView';
 import { AboutView } from './components/AboutView';
 import { HistoryView } from './components/HistoryView';
 import { OnboardingFlow, UserPreferences } from './components/OnboardingFlow';
@@ -27,7 +30,7 @@ import { saveUserProfile } from './services/firebaseService';
 /**
  * Views available in the application.
  */
-type ViewType = 'home' | 'diagnosis' | 'resources' | 'about' | 'history';
+type ViewType = 'home' | 'diagnosis' | 'watering' | 'chat' | 'about' | 'history';
 
 export default function App() {
   const [activeView, setActiveView] = useState<ViewType>('home');
@@ -83,8 +86,10 @@ export default function App() {
         return <HomeView onNavigate={(view) => setActiveView(view)} />;
       case 'diagnosis':
         return <DiagnosisView />;
-      case 'resources':
-        return <AboutView />; // Placeholder for resources
+      case 'watering':
+        return <WateringView />;
+      case 'chat':
+        return <ChatView />;
       case 'history':
         return <HistoryView />;
       case 'about':
@@ -188,17 +193,17 @@ export default function App() {
           <div className={`p-4 rounded-full -mt-10 transition-all duration-300 ${activeView === 'diagnosis' ? 'bg-accent text-white shadow-xl shadow-accent/20' : 'bg-bg text-ink/20 border border-black/5'}`}>
             <Camera size={26} />
           </div>
-          <span className="mt-1">Field Log</span>
+          <span className="mt-1">Diagnose</span>
         </motion.button>
         
         <motion.button 
-          id="nav-resources"
-          onClick={() => setActiveView('resources')}
+          id="nav-watering"
+          onClick={() => setActiveView('watering')}
           whileTap={{ scale: 0.9 }}
-          className={`bottom-nav-item ${activeView === 'resources' ? 'active' : ''}`}
+          className={`bottom-nav-item ${activeView === 'watering' ? 'active' : ''}`}
         >
-          <Info size={22} strokeWidth={activeView === 'resources' ? 2.5 : 2} />
-          <span>Help</span>
+          <Droplets size={22} strokeWidth={activeView === 'watering' ? 2.5 : 2} />
+          <span>Watering</span>
         </motion.button>
 
         <motion.button 

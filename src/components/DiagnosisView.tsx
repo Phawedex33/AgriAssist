@@ -5,8 +5,9 @@
 
 import React, { useState, useRef, useCallback } from 'react';
 import { Camera, Upload, Loader2, CheckCircle2, AlertCircle, RefreshCcw, Crop as CropIcon, Check, ZoomIn, ZoomOut, X } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import Cropper, { Area } from 'react-easy-crop';
+import { diagnoseCrop } from '../services/geminiService';
 import { DiagnosisResult } from '../types';
 import { getCroppedImg } from '../lib/cropImage';
 import { saveDiagnosis } from '../services/firebaseService';
@@ -24,8 +25,6 @@ export function DiagnosisView() {
   const [error, setError] = useState<string | null>(null);
   const [permissionDenied, setPermissionDenied] = useState(false);
   const [fileType, setFileType] = useState<string>('image/jpeg');
-  const [userDescription, setUserDescription] = useState('');
-  const [userCrop, setUserCrop] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   /**
@@ -50,7 +49,14 @@ export function DiagnosisView() {
     setCroppedAreaPixels(croppedAreaPixels);
   }, []);
 
+  /**
+   * Orchestrates the crop-to-diagnosis pipeline.
+   * 1. Generates a cropped image.
+   * 2. Calls the AI model for analysis.
+   * 3. Persists result to cloud records if authenticated.
+   */
   const handleConfirmCrop = async () => {
+    // Basic verification before starting heavy work
     if (!imageSrc || !croppedAreaPixels) return;
     
     setIsCropping(false);
@@ -59,42 +65,41 @@ export function DiagnosisView() {
     setResult(null);
 
     try {
+      // Step 1: Process the selected region into a base64 sample
       const base64 = await getCroppedImg(imageSrc, croppedAreaPixels);
       const fullDataUrl = `data:${fileType};base64,${base64}`;
       setImagePreview(fullDataUrl);
-    } catch (err) {
-      setError("Error processing image.");
+      
+      // Step 2: Request AI analysis focusing on user's selection
+      console.log("Analyzing crop sample...");
+      const diagnosis = await diagnoseCrop(base64, fileType);
+      
+      // Step 3: Present findings to the user
+      setResult(diagnosis);
+
+      // Step 4: Background save to field records for historical reference
+      if (auth.currentUser) {
+        try {
+          await saveDiagnosis(diagnosis, fullDataUrl);
+          console.log("Analysis archived to field records.");
+        } catch (saveErr) {
+          console.warn("Analysis result could not be saved to cloud, but is displayed locally.", saveErr);
+        }
+      }
+    } catch (err: any) {
+      console.error("Diagnosis workflow error:", err);
+      
+      // Differentiate between generic failures and connectivity issues
+      if (!navigator.onLine) {
+        setError("Network Offline. AgriAssist needs an internet connection to reach the AI engine. Please find a signal and try again.");
+      } else {
+        setError(err.message || "We encountered a problem analyzing your crop. Please try selecting the area more clearly or check your connection.");
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSaveLog = async () => {
-    if (!imagePreview || !userCrop || !userDescription) return;
-    
-    setLoading(true);
-    try {
-      const logData: DiagnosisResult = {
-        problem: userDescription,
-        cause: "Logged manually by farmer",
-        whatToDo: ["Monitor the affected area", "Consult local extension worker"],
-        prevention: ["Maintain preventive measures"],
-        confidence: 1.0,
-        cropType: userCrop,
-        diseaseName: userDescription,
-        treatmentPlan: "Consult local experts."
-      };
-      
-      setResult(logData);
-      if (auth.currentUser) {
-        await saveDiagnosis(logData, imagePreview);
-      }
-    } catch (err) {
-      setError("Failed to save the log entry.");
-    } finally {
-      setLoading(false);
-    }
-  };
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -131,8 +136,8 @@ export function DiagnosisView() {
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between border-b border-black/5 pb-4 mb-2">
-        <h2 className="text-3xl font-serif text-ink italic">Crop Log</h2>
-        <span className="section-label">Session v1.0</span>
+        <h2 className="text-3xl font-serif text-ink italic">Diagnosis</h2>
+        <span className="section-label">Engine v1.0</span>
       </div>
 
       {isCropping && imageSrc ? (
@@ -237,20 +242,40 @@ export function DiagnosisView() {
             <motion.div 
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="editorial-card !border-clay bg-clay/5"
+              className="editorial-card !border-clay bg-clay/5 space-y-6"
             >
-              <span className="section-label text-clay">Camera Access Needed</span>
-              <p className="text-sm text-ink/70 leading-relaxed italic mb-4">
-                AgriAssist needs permission to use your camera to see your crops. 
-                Please tap "Allow" when your browser asks, or use the button below to select a photo from your gallery.
-              </p>
-              <button 
-                onClick={triggerFileInput}
-                className="flex items-center gap-2 bg-clay text-white px-6 py-3 rounded-full text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all shadow-md"
-              >
-                <Upload size={14} />
-                Select Photo from Gallery
-              </button>
+              <div>
+                <span className="section-label text-clay">Camera Access Blocked</span>
+                <p className="text-sm text-ink/70 leading-relaxed italic">
+                  It looks like camera access was denied. AgriAssist needs the camera to analyze your crops in real-time.
+                </p>
+              </div>
+
+              <div className="bg-white/50 p-4 rounded-sm border border-clay/10 space-y-3">
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-clay">How to enable:</h4>
+                <ol className="text-[11px] text-ink/60 space-y-2 list-decimal ml-4 font-sans">
+                  <li>Tap the <span className="font-bold text-ink">lock icon</span> or <span className="font-bold text-ink">settings icon</span> in your browser address bar.</li>
+                  <li>Find <span className="font-bold text-ink">Camera</span> and switch it to <span className="font-bold text-ink">Allow</span>.</li>
+                  <li>Refresh this page to try again.</li>
+                </ol>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button 
+                  onClick={() => window.location.reload()}
+                  className="flex-1 flex items-center justify-center gap-2 bg-accent text-white px-6 py-3 rounded-full text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all shadow-md"
+                >
+                  <RefreshCcw size={14} />
+                  Refresh Page
+                </button>
+                <button 
+                  onClick={triggerFileInput}
+                  className="flex-1 flex items-center justify-center gap-2 border border-clay text-clay px-6 py-3 rounded-full text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all shadow-sm"
+                >
+                  <Upload size={14} />
+                  Choose from Gallery
+                </button>
+              </div>
             </motion.div>
           )}
         </div>
@@ -281,47 +306,6 @@ export function DiagnosisView() {
               </div>
             )}
           </div>
-
-          {/* Log Entry Form */}
-          {!result && !loading && imagePreview && (
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="space-y-6"
-            >
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <span className="section-label">Which crop is this?</span>
-                  <input 
-                    type="text"
-                    value={userCrop}
-                    onChange={(e) => setUserCrop(e.target.value)}
-                    placeholder="e.g. Maize, Coffee..."
-                    className="w-full bg-white border border-black/10 p-4 text-sm font-sans placeholder:text-ink/20 focus:outline-none focus:border-accent transition-colors"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <span className="section-label">Describe the problem</span>
-                  <textarea 
-                    value={userDescription}
-                    onChange={(e) => setUserDescription(e.target.value)}
-                    placeholder="e.g. Yellowing leaves on the edges..."
-                    rows={4}
-                    className="w-full bg-white border border-black/10 p-4 text-sm font-sans placeholder:text-ink/20 focus:outline-none focus:border-accent transition-colors resize-none"
-                  />
-                </div>
-              </div>
-
-              <button 
-                onClick={handleSaveLog}
-                disabled={!userCrop || !userDescription}
-                className={`btn-primary ${(!userCrop || !userDescription) && 'opacity-30'}`}
-              >
-                <CheckCircle2 size={16} />
-                Save to Field Records
-              </button>
-            </motion.div>
-          )}
 
           {/* Results Area */}
           {loading && !result ? (
@@ -361,9 +345,12 @@ export function DiagnosisView() {
                     <AlertCircle size={16} className="text-clay" />
                   </div>
                 )}
-                <span className="section-label">Likely Issue</span>
+                <span className="section-label">Problem</span>
                 <h3 className="text-4xl font-serif text-accent mb-3">{result.problem}</h3>
+                
+                <span className="section-label mt-4">Cause</span>
                 <p className="text-sm text-ink/60 leading-relaxed italic">{result.cause}</p>
+                
                 {result.cropType !== 'Unknown' && (
                   <div className="mt-4 pt-4 border-t border-black/5">
                     <span className="text-[10px] font-bold uppercase tracking-widest text-ink/30">Detected Crop: {result.cropType}</span>
@@ -388,23 +375,29 @@ export function DiagnosisView() {
               {/* What to do */}
               <section className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="section-label">Immediate Actions</span>
-                  <div className="bg-emerald-500/10 text-emerald-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Organic Pref.</div>
+                  <span className="section-label">What to do</span>
+                  <div className="bg-emerald-500/10 text-emerald-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Organic First</div>
                 </div>
                 <ul className="action-list">
                   {result.whatToDo.map((step, i) => (
-                    <li key={i} className="action-list-item italic font-serif text-lg text-ink">
-                      {step}
+                    <li key={i} className="action-list-item italic font-serif text-lg text-ink flex gap-3 items-start">
+                      <span className="text-accent mt-2">•</span>
+                      <span>{step}</span>
                     </li>
                   ))}
                 </ul>
               </section>
 
-              {/* Long-term Prevention */}
+              {/* Prevention */}
               <section className="space-y-4">
-                <span className="section-label">Safe Farming Tips</span>
-                <div className="bg-bg p-6 border border-black/5 italic text-sm text-ink/70 leading-relaxed font-sans shadow-sm">
-                  {result.prevention.join(". ")}
+                <span className="section-label">Prevention</span>
+                <div className="bg-bg p-6 border border-black/5 rounded-xl space-y-3 shadow-sm">
+                  {result.prevention.map((tip, i) => (
+                    <div key={i} className="flex gap-3 items-start">
+                      <span className="text-clay mt-1">•</span>
+                      <p className="text-[13px] text-ink/70 leading-relaxed font-sans italic">{tip}</p>
+                    </div>
+                  ))}
                 </div>
               </section>
 

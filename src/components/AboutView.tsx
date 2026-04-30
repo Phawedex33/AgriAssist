@@ -19,26 +19,28 @@ export function AboutView() {
         <span className="section-label">Our Purpose</span>
         <h3 className="text-3xl font-serif text-accent mb-4">Empowering Smallholders</h3>
         <p className="text-sm text-ink/70 leading-relaxed font-sans">
-          AgriAssist was conceived as a tool to bridge the information gap faced by rural smallholder farmers. 
-          By providing a simple interface for field logging and agricultural records, 
-          we aim to help farmers track their crop health and prepare for expert consultations.
+          AgriAssist was conceived as a response to the information gap faced by rural smallholder farmers. 
+          By bringing advanced AI diagnostics and expert agricultural consultation to the smartphone, 
+          we aim to reduce crop loss and increase food security in tropical farming environments.
         </p>
       </div>
 
-      {/* Feature Overview */}
+      {/* AI Capabilities */}
       <section className="space-y-6">
-        <span className="section-label">Core Features</span>
+        <span className="section-label">AI Integration</span>
         <div className="space-y-4">
           <div className="card bg-surface/30">
-            <h4 className="font-serif text-xl mb-2 text-ink">Field Logs</h4>
+            <h4 className="font-serif text-xl mb-2 text-ink">Computer Vision</h4>
             <p className="text-xs text-ink/50 leading-relaxed">
-              Capture photos and field observations to maintain a historical record of crop growth and issues.
+              Using the Gemini 1.5 Flash model, we analyze leaf patterns, discoloration, and structural damage 
+              to identify common pests and diseases with high confidence levels.
             </p>
           </div>
           <div className="card bg-surface/30">
-            <h4 className="font-serif text-xl mb-2 text-ink">Resource Directory</h4>
+            <h4 className="font-serif text-xl mb-2 text-ink">Natural Language Advisor</h4>
             <p className="text-xs text-ink/50 leading-relaxed">
-              Access local agricultural guidance and contact information for extension services.
+              Our chat interface provides structured, actionable farming advice tailored to the specific constraints 
+              of small-scale agriculture, focusing on low-cost and organic interventions.
             </p>
           </div>
         </div>
@@ -47,10 +49,11 @@ export function AboutView() {
       {/* Hackathon Context */}
       <div className="editorial-card !border-clay">
         <span className="section-label text-clay">Development Context</span>
-        <h3 className="text-2xl font-serif text-ink mb-2">Field Prototype</h3>
+        <h3 className="text-2xl font-serif text-ink mb-2">Hackathon Prototype</h3>
         <p className="text-sm text-ink/60 italic leading-relaxed font-serif">
-          This application was developed as a production-quality prototype for field researchers and farmers. 
-          It serves as a demonstration of robust data collection in challenging connectivity environments.
+          This application was developed as a production-quality prototype for the 2026 AI Studio Hackathon. 
+          It serves as a demonstration of how low-latency AI models can solve real-world problems in 
+          challenging connectivity environments.
         </p>
       </div>
 

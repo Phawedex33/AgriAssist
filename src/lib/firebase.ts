@@ -5,13 +5,21 @@
 
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously } from 'firebase/auth';
-import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
+import { 
+  initializeFirestore, 
+  persistentLocalCache, 
+  persistentMultipleTabManager 
+} from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firestore with the specific database ID from config
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+// Initialize Firestore with modern persistent cache settings
+export const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager()
+  })
+}, firebaseConfig.firestoreDatabaseId);
 
 // Initialize Auth
 export const auth = getAuth(app);
@@ -35,17 +43,3 @@ export async function ensureSignedIn() {
   }
   return auth.currentUser;
 }
-
-/**
- * Enables offline persistence for Firestore.
- * This is a critical differentiator for rural farming apps.
- */
-enableIndexedDbPersistence(db).catch((err) => {
-  if (err.code === 'failed-precondition') {
-    // Multiple tabs open, persistence can only be enabled in one tab at a time.
-    console.warn('Persistence failed: Multiple tabs open');
-  } else if (err.code === 'unimplemented') {
-    // The current browser does not support all of the features required to enable persistence
-    console.warn('Persistence failed: Browser not supported');
-  }
-});
