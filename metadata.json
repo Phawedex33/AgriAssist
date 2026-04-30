@@ -4,8 +4,5 @@
   "requestFramePermissions": [
     "camera"
   ],
-  "majorCapabilities": [
-    "AI Crop Diagnosis",
-    "Farming Assistance Chat"
-  ]
+  "majorCapabilities": []
 }

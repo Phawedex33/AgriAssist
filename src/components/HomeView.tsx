@@ -7,7 +7,7 @@ import { Sprout, Camera, MessageSquare, ShieldCheck, HelpCircle } from 'lucide-r
 import { motion } from 'motion/react';
 
 interface HomeViewProps {
-  onNavigate: (view: 'diagnosis' | 'chat' | 'about') => void;
+  onNavigate: (view: 'diagnosis' | 'resources' | 'about') => void;
 }
 
 export function HomeView({ onNavigate }: HomeViewProps) {
@@ -20,16 +20,16 @@ export function HomeView({ onNavigate }: HomeViewProps) {
         </div>
         <div className="flex items-center gap-2 text-clay">
           <div className="w-2 h-2 bg-clay rounded-full" />
-          <span className="text-[10px] uppercase tracking-widest font-bold">Offline Ready</span>
+          <span className="text-[10px] uppercase tracking-widest font-bold">Log Record Mode</span>
         </div>
       </div>
 
       {/* Hero Welcome */}
       <div className="space-y-6">
         <span className="section-label">Field Companion</span>
-        <h2 className="text-5xl leading-tight font-serif text-ink">Modern solutions for your farm.</h2>
+        <h2 className="text-5xl leading-tight font-serif text-ink">Modern records for your farm.</h2>
         <p className="text-ink/60 leading-relaxed font-sans text-sm">
-          Diagnose crop diseases instantly using AI or consult our expert agricultural advisor for localized farming guidance.
+          Capture crop observations and maintain a digital field journal to track changes and growth.
         </p>
         <button 
           id="hero-diagnose-btn"
@@ -37,23 +37,23 @@ export function HomeView({ onNavigate }: HomeViewProps) {
           className="btn-primary"
         >
           <Camera size={18} />
-          Start Diagnosis
+          Log Observation
         </button>
       </div>
 
       {/* Quick Actions */}
       <div className="space-y-4">
-        <span className="section-label">Consultation</span>
+        <span className="section-label">Resources</span>
         <div className="grid grid-cols-1 gap-4">
           <motion.button
-            id="action-chat"
+            id="action-resources"
             whileTap={{ scale: 0.98 }}
-            onClick={() => onNavigate('chat')}
+            onClick={() => onNavigate('resources')}
             className="editorial-card flex items-center justify-between group cursor-pointer w-full text-left"
           >
             <div className="flex flex-col items-start gap-1">
-              <span className="font-serif text-2xl group-hover:text-accent transition-colors">Ask for Advice</span>
-              <span className="text-xs text-ink/40 font-medium">Expert agricultural guidance</span>
+              <span className="font-serif text-2xl group-hover:text-accent transition-colors">Help Center</span>
+              <span className="text-xs text-ink/40 font-medium">Agricultural guidance & tips</span>
             </div>
             <MessageSquare size={24} className="text-accent opacity-20 group-hover:opacity-100 transition-opacity" strokeWidth={1} />
           </motion.button>
@@ -69,7 +69,7 @@ export function HomeView({ onNavigate }: HomeViewProps) {
           About Project
         </button>
         <p className="text-[10px] text-ink/30 leading-normal uppercase tracking-wider text-center">
-          AgriAssist Prototype • AI Studio Hackathon 2026
+          AgriAssist Prototype • Field Trials 2026
         </p>
       </div>
     </div>

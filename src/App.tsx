@@ -17,7 +17,6 @@ import {
 } from 'lucide-react';
 import { HomeView } from './components/HomeView';
 import { DiagnosisView } from './components/DiagnosisView';
-import { ChatView } from './components/ChatView';
 import { AboutView } from './components/AboutView';
 import { HistoryView } from './components/HistoryView';
 import { OnboardingFlow, UserPreferences } from './components/OnboardingFlow';
@@ -28,7 +27,7 @@ import { saveUserProfile } from './services/firebaseService';
 /**
  * Views available in the application.
  */
-type ViewType = 'home' | 'diagnosis' | 'chat' | 'about' | 'history';
+type ViewType = 'home' | 'diagnosis' | 'resources' | 'about' | 'history';
 
 export default function App() {
   const [activeView, setActiveView] = useState<ViewType>('home');
@@ -84,8 +83,8 @@ export default function App() {
         return <HomeView onNavigate={(view) => setActiveView(view)} />;
       case 'diagnosis':
         return <DiagnosisView />;
-      case 'chat':
-        return <ChatView />;
+      case 'resources':
+        return <AboutView />; // Placeholder for resources
       case 'history':
         return <HistoryView />;
       case 'about':
@@ -189,17 +188,17 @@ export default function App() {
           <div className={`p-4 rounded-full -mt-10 transition-all duration-300 ${activeView === 'diagnosis' ? 'bg-accent text-white shadow-xl shadow-accent/20' : 'bg-bg text-ink/20 border border-black/5'}`}>
             <Camera size={26} />
           </div>
-          <span className="mt-1">Diagnose</span>
+          <span className="mt-1">Field Log</span>
         </motion.button>
         
         <motion.button 
-          id="nav-chat"
-          onClick={() => setActiveView('chat')}
+          id="nav-resources"
+          onClick={() => setActiveView('resources')}
           whileTap={{ scale: 0.9 }}
-          className={`bottom-nav-item ${activeView === 'chat' ? 'active' : ''}`}
+          className={`bottom-nav-item ${activeView === 'resources' ? 'active' : ''}`}
         >
-          <MessageSquare size={22} strokeWidth={activeView === 'chat' ? 2.5 : 2} />
-          <span>Advisor</span>
+          <Info size={22} strokeWidth={activeView === 'resources' ? 2.5 : 2} />
+          <span>Help</span>
         </motion.button>
 
         <motion.button 

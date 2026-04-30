@@ -37,7 +37,7 @@ export function HistoryView() {
   return (
     <div className="space-y-8 pb-32">
       <div className="flex items-center justify-between border-b border-black/5 pb-4 mb-2">
-        <h2 className="text-3xl font-serif text-ink italic">History</h2>
+        <h2 className="text-3xl font-serif text-ink italic">Field Records</h2>
         <span className="section-label">{hasAuth ? `${history.length} Saved` : 'Guest Mode'}</span>
       </div>
 
@@ -48,7 +48,7 @@ export function HistoryView() {
             <div>
               <span className="section-label text-clay">Cloud Sync Disabled</span>
               <p className="text-sm text-ink/70 leading-relaxed font-serif italic">
-                Anonymous sign-in is not enabled. Your diagnoses will only be saved locally in this session. 
+                Anonymous sign-in is not enabled. Your logs will only be saved locally in this session. 
               </p>
             </div>
           </div>
@@ -57,7 +57,7 @@ export function HistoryView() {
 
       {hasAuth && history.length === 0 ? (
         <div className="editorial-card text-center !pl-0">
-          <p className="text-sm text-ink/40 font-serif italic py-8">No past diagnoses found.</p>
+          <p className="text-sm text-ink/40 font-serif italic py-8">No field records found.</p>
         </div>
       ) : (
         <div className="space-y-4">

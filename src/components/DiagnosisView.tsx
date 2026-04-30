@@ -7,7 +7,6 @@ import React, { useState, useRef, useCallback } from 'react';
 import { Camera, Upload, Loader2, CheckCircle2, AlertCircle, RefreshCcw, Crop as CropIcon, Check, ZoomIn, ZoomOut, X } from 'lucide-react';
 import { motion } from 'motion/react';
 import Cropper, { Area } from 'react-easy-crop';
-import { diagnoseCrop } from '../services/geminiService';
 import { DiagnosisResult } from '../types';
 import { getCroppedImg } from '../lib/cropImage';
 import { saveDiagnosis } from '../services/firebaseService';
@@ -25,6 +24,8 @@ export function DiagnosisView() {
   const [error, setError] = useState<string | null>(null);
   const [permissionDenied, setPermissionDenied] = useState(false);
   const [fileType, setFileType] = useState<string>('image/jpeg');
+  const [userDescription, setUserDescription] = useState('');
+  const [userCrop, setUserCrop] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   /**
@@ -41,7 +42,6 @@ export function DiagnosisView() {
         setPermissionDenied(true);
       }
     } else {
-      // Fallback for environments without mediaDevices support
       triggerFileInput();
     }
   };
@@ -62,28 +62,39 @@ export function DiagnosisView() {
       const base64 = await getCroppedImg(imageSrc, croppedAreaPixels);
       const fullDataUrl = `data:${fileType};base64,${base64}`;
       setImagePreview(fullDataUrl);
-      
-      const diagnosis = await diagnoseCrop(base64, fileType);
-      setResult(diagnosis);
-
-      // Save to Firestore if authenticated
-      if (auth.currentUser) {
-        await saveDiagnosis(diagnosis, fullDataUrl);
-      }
     } catch (err) {
-      if (!navigator.onLine) {
-        setError("You are currently offline. AgriAssist needs an internet connection to send your photo to our experts. Please move to an area with better signal and try again.");
-      } else {
-        setError("We're having trouble reaching our AI experts. This might be a temporary service issue. Please wait a few minutes and try again.");
-      }
+      setError("Error processing image.");
     } finally {
       setLoading(false);
     }
   };
 
-  /**
-   * Handles file selection.
-   */
+  const handleSaveLog = async () => {
+    if (!imagePreview || !userCrop || !userDescription) return;
+    
+    setLoading(true);
+    try {
+      const logData: DiagnosisResult = {
+        problem: userDescription,
+        cause: "Logged manually by farmer",
+        whatToDo: ["Monitor the affected area", "Consult local extension worker"],
+        prevention: ["Maintain preventive measures"],
+        confidence: 1.0,
+        cropType: userCrop,
+        diseaseName: userDescription,
+        treatmentPlan: "Consult local experts."
+      };
+      
+      setResult(logData);
+      if (auth.currentUser) {
+        await saveDiagnosis(logData, imagePreview);
+      }
+    } catch (err) {
+      setError("Failed to save the log entry.");
+    } finally {
+      setLoading(false);
+    }
+  };
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -120,8 +131,8 @@ export function DiagnosisView() {
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between border-b border-black/5 pb-4 mb-2">
-        <h2 className="text-3xl font-serif text-ink italic">Diagnosis</h2>
-        <span className="section-label">Engine v1.0</span>
+        <h2 className="text-3xl font-serif text-ink italic">Crop Log</h2>
+        <span className="section-label">Session v1.0</span>
       </div>
 
       {isCropping && imageSrc ? (
@@ -270,6 +281,47 @@ export function DiagnosisView() {
               </div>
             )}
           </div>
+
+          {/* Log Entry Form */}
+          {!result && !loading && imagePreview && (
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-6"
+            >
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <span className="section-label">Which crop is this?</span>
+                  <input 
+                    type="text"
+                    value={userCrop}
+                    onChange={(e) => setUserCrop(e.target.value)}
+                    placeholder="e.g. Maize, Coffee..."
+                    className="w-full bg-white border border-black/10 p-4 text-sm font-sans placeholder:text-ink/20 focus:outline-none focus:border-accent transition-colors"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <span className="section-label">Describe the problem</span>
+                  <textarea 
+                    value={userDescription}
+                    onChange={(e) => setUserDescription(e.target.value)}
+                    placeholder="e.g. Yellowing leaves on the edges..."
+                    rows={4}
+                    className="w-full bg-white border border-black/10 p-4 text-sm font-sans placeholder:text-ink/20 focus:outline-none focus:border-accent transition-colors resize-none"
+                  />
+                </div>
+              </div>
+
+              <button 
+                onClick={handleSaveLog}
+                disabled={!userCrop || !userDescription}
+                className={`btn-primary ${(!userCrop || !userDescription) && 'opacity-30'}`}
+              >
+                <CheckCircle2 size={16} />
+                Save to Field Records
+              </button>
+            </motion.div>
+          )}
 
           {/* Results Area */}
           {loading && !result ? (
