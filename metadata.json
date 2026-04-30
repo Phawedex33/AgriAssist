@@ -1,0 +1,11 @@
+{
+  "name": "AgriAssist",
+  "description": "AI-powered agricultural extension tool for smallholder farmers to diagnose crops and receive localized farming advice.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "AI Crop Diagnosis",
+    "Farming Assistance Chat"
+  ]
+}
