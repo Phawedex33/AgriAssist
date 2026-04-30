@@ -1,0 +1,60 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Preferences and basic identity for the farmer.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "language": { "type": "string", "enum": ["English", "Swahili"] },
+        "primaryCrop": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "language", "primaryCrop"]
+    },
+    "Diagnosis": {
+      "title": "Crop Diagnosis",
+      "description": "Diagnostic results from AI analysis.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "crop": { "type": "string" },
+        "disease": { "type": "string" },
+        "confidence": { "type": "number" },
+        "treatment": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "disease", "treatment"]
+    },
+    "ChatMessage": {
+      "title": "Chat History",
+      "description": "Interaction between the farmer and the AI Advisor.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "assistant"] },
+        "content": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "role", "content"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Private user profiles."
+    },
+    "/users/{userId}/diagnoses/{diagnosisId}": {
+      "schema": "Diagnosis",
+      "description": "Historical diagnoses for a specific user."
+    },
+    "/users/{userId}/messages/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "Private chat logs for a specific user."
+    }
+  }
+}

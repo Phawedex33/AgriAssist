@@ -59,7 +59,11 @@ export async function diagnoseCrop(base64Image: string, mimeType: string): Promi
       prevention: [
         "Keep the crop area clear of weeds",
         "Monitor for changes daily"
-      ]
+      ],
+      confidence: 0,
+      cropType: "Unknown",
+      diseaseName: "Unknown",
+      treatmentPlan: "Consult an expert."
     };
   }
 }

@@ -3,7 +3,7 @@
  * @description Main application controller for AgriAssist.
  */
 
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Home as HomeIcon, 
@@ -11,19 +11,69 @@ import {
   MessageSquare, 
   Sprout, 
   ChevronRight,
-  Info
+  Info,
+  WifiOff,
+  Loader2
 } from 'lucide-react';
 import { HomeView } from './components/HomeView';
 import { DiagnosisView } from './components/DiagnosisView';
 import { ChatView } from './components/ChatView';
+import { AboutView } from './components/AboutView';
+import { HistoryView } from './components/HistoryView';
+import { OnboardingFlow, UserPreferences } from './components/OnboardingFlow';
+import { auth, ensureSignedIn } from './lib/firebase';
+import { onAuthStateChanged, User } from 'firebase/auth';
+import { saveUserProfile } from './services/firebaseService';
 
 /**
  * Views available in the application.
  */
-type ViewType = 'home' | 'diagnosis' | 'chat';
+type ViewType = 'home' | 'diagnosis' | 'chat' | 'about' | 'history';
 
 export default function App() {
   const [activeView, setActiveView] = useState<ViewType>('home');
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    return !localStorage.getItem('agriassist_onboarding_done');
+  });
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    // Anonymous Sign-in on mount
+    ensureSignedIn().finally(() => setLoading(false));
+
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      unsubscribe();
+    };
+  }, []);
+
+  /**
+   * Handles completion of onboarding.
+   */
+  const handleOnboardingComplete = async (prefs: UserPreferences) => {
+    localStorage.setItem('agriassist_onboarding_done', 'true');
+    localStorage.setItem('agriassist_prefs', JSON.stringify(prefs));
+    
+    // Save to Firestore if authenticated
+    if (auth.currentUser) {
+      await saveUserProfile(prefs.language, prefs.primaryCrop);
+    }
+    
+    setShowOnboarding(false);
+  };
 
   /**
    * Renders the current active view with a transition.
@@ -36,13 +86,72 @@ export default function App() {
         return <DiagnosisView />;
       case 'chat':
         return <ChatView />;
+      case 'history':
+        return <HistoryView />;
+      case 'about':
+        return <AboutView />;
       default:
         return <HomeView onNavigate={(view) => setActiveView(view)} />;
     }
   };
 
+  if (loading) {
+    return (
+      <div className="app-container flex items-center justify-center bg-bg">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="text-accent animate-spin" size={32} />
+          <p className="section-label">Initializing AgriAssist...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="app-container" id="agriassist-root">
+      {/* Offline Banner */}
+      <AnimatePresence>
+        {!isOnline && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="absolute top-0 inset-x-0 bg-clay text-white text-[10px] uppercase font-black tracking-[0.2em] py-2 text-center z-[100] flex items-center justify-center gap-2"
+          >
+            <WifiOff size={12} />
+            Offline Mode Active • Saved Insights Available
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {showOnboarding && (
+          <motion.div
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.5, ease: 'easeInOut' }}
+            className="absolute inset-0 z-[100]"
+          >
+            <OnboardingFlow onComplete={handleOnboardingComplete} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Accessibility / About Trigger */}
+      <button 
+        id="info-trigger"
+        onClick={() => setActiveView(activeView === 'about' ? 'home' : 'about')}
+        className={`absolute top-6 right-6 z-[60] transition-all duration-300 ${
+          activeView === 'about' ? 'text-clay rotate-90' : 'text-ink/20 hover:text-accent'
+        }`}
+      >
+        {activeView === 'about' ? (
+          <div className="bg-white/50 backdrop-blur-sm p-1 rounded-full shadow-sm">
+            <ChevronRight size={24} />
+          </div>
+        ) : (
+          <Info size={20} strokeWidth={2} />
+        )}
+      </button>
+
       {/* Dynamic Content Area */}
       <div className="scrollarea">
         <AnimatePresence mode="wait">
@@ -91,6 +200,16 @@ export default function App() {
         >
           <MessageSquare size={22} strokeWidth={activeView === 'chat' ? 2.5 : 2} />
           <span>Advisor</span>
+        </motion.button>
+
+        <motion.button 
+          id="nav-history"
+          onClick={() => setActiveView('history')}
+          whileTap={{ scale: 0.9 }}
+          className={`bottom-nav-item ${activeView === 'history' ? 'active' : ''}`}
+        >
+          <Sprout size={22} strokeWidth={activeView === 'history' ? 2.5 : 2} />
+          <span>Saved</span>
         </motion.button>
       </nav>
     </div>

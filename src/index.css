@@ -64,7 +64,7 @@
 }
 
 .editorial-card {
-  @apply border-l-[4px] border-accent pl-6 py-5 mb-8 bg-surface/40 backdrop-blur-sm;
+  @apply border-l-[4px] border-accent pl-6 py-5 mb-8 bg-surface/40 backdrop-blur-sm transition-all duration-300;
   box-shadow: var(--elevation-1);
 }
 

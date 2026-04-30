@@ -3,10 +3,12 @@
  * @description Agricultural assistant chat view for AgriAssist.
  */
 
-import { useState, useRef, useEffect } from 'react';
-import { MessageSquare, Send, Bot, User, Loader2, Sparkles } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { MessageSquare, Send, Bot, User, Loader2, Sparkles, Mic, MicOff, AlertCircle } from 'lucide-react';
 import { getFarmingAdvice } from '../services/geminiService';
 import { ChatMessage, AdviceResult } from '../types';
+import { saveChatMessage } from '../services/firebaseService';
+import { auth } from '../lib/firebase';
 
 /**
  * Suggested questions to help farmers get started.
@@ -22,7 +24,47 @@ export function ChatView() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<any>(null);
+
+  /**
+   * Initialize speech recognition
+   */
+  useEffect(() => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      setSpeechSupported(true);
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = false;
+      recognitionRef.current.interimResults = false;
+      recognitionRef.current.lang = 'en-US';
+
+      recognitionRef.current.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        setInputText(transcript);
+        setIsListening(false);
+      };
+
+      recognitionRef.current.onerror = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current.onend = () => {
+        setIsListening(false);
+      };
+    }
+  }, []);
+
+  const toggleListening = useCallback(() => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+    } else {
+      recognitionRef.current?.start();
+      setIsListening(true);
+    }
+  }, [isListening]);
 
   /**
    * Auto-scroll to bottom of chat when new messages arrive.
@@ -50,22 +92,38 @@ export function ChatView() {
     setInputText('');
     setLoading(true);
 
+    // Save to Firestore if authenticated
+    if (auth.currentUser) {
+      await saveChatMessage('user', text);
+    }
+
     try {
       const advice: AdviceResult = await getFarmingAdvice(text);
+      const adviceContent = `**Answer:**\n${advice.answer}\n\n**What you should do:**\n${advice.whatYouShouldDo.map(step => `- ${step}`).join('\n')}`;
       
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: `**Answer:**\n${advice.answer}\n\n**What you should do:**\n${advice.whatYouShouldDo.map(step => `- ${step}`).join('\n')}`,
+        content: adviceContent,
         timestamp: Date.now()
       };
 
       setMessages(prev => [...prev, assistantMessage]);
+
+      if (auth.currentUser) {
+        await saveChatMessage('assistant', adviceContent);
+      }
     } catch (error) {
+      let errorMessageContent = "I'm sorry, I'm having trouble connecting to the advisory service. Please check your internet connection and try again.";
+      
+      if (!navigator.onLine) {
+        errorMessageContent = "You are currently offline. I can't reach the agricultural knowledge base without internet. Please check your network and try again.";
+      }
+
       const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: "I'm sorry, I'm having trouble connecting to the advisory service. Please check your internet connection and try again.",
+        content: errorMessageContent,
         timestamp: Date.now()
       };
       setMessages(prev => [...prev, errorMessage]);
@@ -174,30 +232,43 @@ export function ChatView() {
       {/* Input Area */}
       <div className="space-y-4">
         <span className="section-label">Consult Expert</span>
-        <div className="flex gap-4 p-4 bg-white border border-black/10 rounded-sm">
+        <div className="flex gap-4 p-4 bg-white border border-black/10 rounded-sm items-center">
           <input 
             id="chat-input"
             type="text" 
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSendMessage(inputText)}
-            placeholder="Type your question here (e.g., 'When to plant sorghum?')..."
+            placeholder="Type your question..."
             className="flex-1 bg-transparent text-sm font-sans placeholder:text-ink/20 focus:outline-none"
           />
+          {speechSupported && (
+            <button 
+              onClick={toggleListening}
+              className={`transition-colors ${isListening ? 'text-clay animate-pulse' : 'text-ink/20 hover:text-accent'}`}
+            >
+              <Mic size={20} />
+            </button>
+          )}
         </div>
         <div className="flex justify-between items-center">
-          <span className="text-[10px] uppercase tracking-widest text-ink/30 font-bold">Voice Support Coming Soon</span>
+          <div className="flex items-center gap-1.5 text-[9px] font-bold text-ink/30 uppercase tracking-widest leading-none">
+            <AlertCircle size={10} /> Experts only verified in demo
+          </div>
           <button 
             id="send-chat-btn"
             onClick={() => handleSendMessage(inputText)}
-            disabled={!inputText.trim() || loading}
+            disabled={!inputText.trim() || loading || isListening || !navigator.onLine}
             className={`btn-primary w-fit ${
-              (!inputText.trim() || loading) && 'opacity-30'
+              (!inputText.trim() || loading || isListening || !navigator.onLine) && 'opacity-30'
             }`}
           >
-            Send Question
+            {navigator.onLine ? 'Send' : 'Offline'}
           </button>
         </div>
+        <p className="text-[10px] text-ink/20 text-center uppercase tracking-widest leading-tight">
+          AI advice is general. Consult local experts for critical matters.
+        </p>
       </div>
     </div>
   );

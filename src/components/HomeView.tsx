@@ -7,7 +7,7 @@ import { Sprout, Camera, MessageSquare, ShieldCheck, HelpCircle } from 'lucide-r
 import { motion } from 'motion/react';
 
 interface HomeViewProps {
-  onNavigate: (view: 'diagnosis' | 'chat') => void;
+  onNavigate: (view: 'diagnosis' | 'chat' | 'about') => void;
 }
 
 export function HomeView({ onNavigate }: HomeViewProps) {
@@ -61,7 +61,13 @@ export function HomeView({ onNavigate }: HomeViewProps) {
       </div>
 
       {/* Footer Info */}
-      <div className="pt-8 border-t border-black/5">
+      <div className="pt-8 border-t border-black/5 flex flex-col items-center gap-4">
+        <button 
+          onClick={() => onNavigate('about')}
+          className="text-[10px] text-accent font-black uppercase tracking-[0.2em] hover:clay transition-colors"
+        >
+          About Project
+        </button>
         <p className="text-[10px] text-ink/30 leading-normal uppercase tracking-wider text-center">
           AgriAssist Prototype • AI Studio Hackathon 2026
         </p>

@@ -11,6 +11,10 @@ export interface DiagnosisResult {
   cause: string;
   whatToDo: string[];
   prevention: string[];
+  confidence: number; // 0-1
+  cropType: string;
+  diseaseName: string;
+  treatmentPlan: string;
 }
 
 /**
