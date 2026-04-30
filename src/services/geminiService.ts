@@ -26,13 +26,11 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 export async function diagnoseCrop(base64Image: string, mimeType: string): Promise<DiagnosisResult> {
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: {
-        parts: [
-          { inlineData: { data: base64Image, mimeType } },
-          { text: "Diagnose this crop issue and provide actionable advice for a smallholder farmer." }
-        ]
-      },
+      model: "gemini-1.5-flash",
+      contents: [
+        { inlineData: { data: base64Image, mimeType } },
+        { text: "Diagnose this crop issue and provide actionable advice for a smallholder farmer." }
+      ],
       config: {
         systemInstruction: DIAGNOSIS_SYSTEM_INSTRUCTION,
         responseMimeType: "application/json",
@@ -77,7 +75,7 @@ export async function diagnoseCrop(base64Image: string, mimeType: string): Promi
 export async function getFarmingAdvice(question: string): Promise<AdviceResult> {
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-1.5-flash",
       contents: question,
       config: {
         systemInstruction: ADVICE_SYSTEM_INSTRUCTION,

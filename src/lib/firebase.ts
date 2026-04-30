@@ -27,7 +27,7 @@ export async function ensureSignedIn() {
       console.log('Signed in anonymously:', auth.currentUser?.uid);
     } catch (error: any) {
       if (error.code === 'auth/admin-restricted-operation') {
-        console.warn('Anonymous sign-in is disabled in Firebase Console. App will continue in guest mode (data won\'t persist across devices).');
+        console.warn(`Anonymous sign-in is disabled. To enable history saving, go to: https://console.firebase.google.com/project/${firebaseConfig.projectId}/authentication/providers and enable "Anonymous" provider.`);
       } else {
         console.error('Anonymous sign-in failed:', error);
       }
