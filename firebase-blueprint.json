@@ -8,6 +8,13 @@
         "uid": { "type": "string" },
         "language": { "type": "string", "enum": ["English", "Swahili"] },
         "primaryCrop": { "type": "string" },
+        "location": {
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lon": { "type": "number" }
+          }
+        },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
@@ -41,6 +48,20 @@
         "timestamp": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "role", "content"]
+    },
+    "WateringSchedule": {
+      "title": "Watering Schedule",
+      "description": "Custom watering plan for a crop.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "cropName": { "type": "string" },
+        "frequency": { "type": "string", "enum": ["daily", "twice-daily", "alternate-days", "weekly"] },
+        "preferredTime": { "type": "string" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "cropName", "frequency", "preferredTime"]
     }
   },
   "firestore": {
@@ -55,6 +76,10 @@
     "/users/{userId}/messages/{messageId}": {
       "schema": "ChatMessage",
       "description": "Private chat logs for a specific user."
+    },
+    "/users/{userId}/schedules/{scheduleId}": {
+      "schema": "WateringSchedule",
+      "description": "Custom watering schedules for a user."
     }
   }
 }

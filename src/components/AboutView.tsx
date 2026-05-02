@@ -37,10 +37,10 @@ export function AboutView() {
             </p>
           </div>
           <div className="card bg-surface/30">
-            <h4 className="font-serif text-xl mb-2 text-ink">Natural Language Advisor</h4>
+            <h4 className="font-serif text-xl mb-2 text-ink">Smart Watering</h4>
             <p className="text-xs text-ink/50 leading-relaxed">
-              Our chat interface provides structured, actionable farming advice tailored to the specific constraints 
-              of small-scale agriculture, focusing on low-cost and organic interventions.
+              Our advisor processes real-time weather indicators to give you precise, water-saving 
+              recommendations for your local farming environment.
             </p>
           </div>
         </div>

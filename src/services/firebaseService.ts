@@ -13,11 +13,12 @@ import {
   where, 
   orderBy, 
   getDocs, 
+  deleteDoc,
   serverTimestamp, 
   Timestamp
 } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
-import { DiagnosisResult } from '../types';
+import { DiagnosisResult, WateringSchedule } from '../types';
 
 enum OperationType {
   CREATE = 'create',
@@ -64,9 +65,34 @@ export async function saveUserProfile(language: string, primaryCrop: string) {
       primaryCrop,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
-    });
+    }, { merge: true });
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
+  }
+}
+
+export async function updateUserLocation(lat: number, lon: number) {
+  if (!auth.currentUser) return;
+  const path = `users/${auth.currentUser.uid}`;
+  try {
+    await setDoc(doc(db, path), {
+      location: { lat, lon },
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, path);
+  }
+}
+
+export async function getUserProfile() {
+  if (!auth.currentUser) return null;
+  const path = `users/${auth.currentUser.uid}`;
+  try {
+    const d = await getDoc(doc(db, path));
+    return d.exists() ? d.data() : null;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.GET, path);
+    return null;
   }
 }
 
@@ -113,5 +139,46 @@ export async function getDiagnosesHistory() {
   } catch (error) {
     handleFirestoreError(error, OperationType.LIST, path);
     return [];
+  }
+}
+
+export async function saveWateringSchedule(schedule: Omit<WateringSchedule, 'id' | 'userId' | 'createdAt'>) {
+  if (!auth.currentUser) return;
+  const path = `users/${auth.currentUser.uid}/schedules`;
+  try {
+    await addDoc(collection(db, path), {
+      userId: auth.currentUser.uid,
+      ...schedule,
+      createdAt: serverTimestamp()
+    });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, path);
+  }
+}
+
+export async function getWateringSchedules(): Promise<WateringSchedule[]> {
+  if (!auth.currentUser) return [];
+  const path = `users/${auth.currentUser.uid}/schedules`;
+  try {
+    const q = query(collection(db, path), orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(d => ({ 
+      id: d.id, 
+      ...d.data(),
+      createdAt: (d.data().createdAt as Timestamp)?.toMillis() || Date.now()
+    } as WateringSchedule));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.LIST, path);
+    return [];
+  }
+}
+
+export async function deleteWateringSchedule(id: string) {
+  if (!auth.currentUser) return;
+  const path = `users/${auth.currentUser.uid}/schedules/${id}`;
+  try {
+    await deleteDoc(doc(db, path));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, path);
   }
 }

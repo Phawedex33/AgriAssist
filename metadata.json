@@ -2,7 +2,8 @@
   "name": "AgriAssist",
   "description": "AI-powered agricultural extension tool for smallholder farmers to diagnose crops and receive localized farming advice.",
   "requestFramePermissions": [
-    "camera"
+    "camera",
+    "geolocation"
   ],
   "majorCapabilities": [
     "AI Diagnosis",

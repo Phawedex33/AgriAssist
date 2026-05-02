@@ -3,11 +3,11 @@
  * @description The landing view for AgriAssist.
  */
 
-import { Sprout, Camera, MessageSquare, Droplets, Info } from 'lucide-react';
+import { Sprout, Camera, Droplets, Info, MessageSquare } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface HomeViewProps {
-  onNavigate: (view: 'diagnosis' | 'watering' | 'chat' | 'about') => void;
+  onNavigate: (view: 'diagnosis' | 'watering' | 'about' | 'chat') => void;
 }
 
 export function HomeView({ onNavigate }: HomeViewProps) {
@@ -67,7 +67,7 @@ export function HomeView({ onNavigate }: HomeViewProps) {
             </div>
             <MessageSquare size={24} className="text-accent opacity-20 group-hover:opacity-100 transition-opacity" strokeWidth={1} />
           </motion.button>
-          
+
           <motion.button
             id="action-about"
             whileTap={{ scale: 0.98 }}

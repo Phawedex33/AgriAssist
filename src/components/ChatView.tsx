@@ -1,123 +1,131 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, User, Bot, Loader2, MessageSquare, AlertCircle } from 'lucide-react';
+import { Send, User, Bot, Loader2, Sprout } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { getFarmingAdvice } from '../services/geminiService';
-import { AdviceResult } from '../types';
+import { ChatMessage } from '../types';
 
-interface Message {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  adviceData?: AdviceResult;
+/**
+ * Simulated AI advisor function.
+ * Provides context-aware responses without external API calls for the buildathon demo.
+ */
+async function simulateAdvisorResponse(question: string): Promise<string> {
+  // Simulate network latency
+  await new Promise(resolve => setTimeout(resolve, 2000));
+  
+  const lowerQ = question.toLowerCase();
+  
+  if (lowerQ.includes('pest') || lowerQ.includes('bug') || lowerQ.includes('insect')) {
+    return "It sounds like you might be dealing with a pest infestation. Organic solutions like neem oil or a simple soapy water spray can often help without damaging the soil. Have you noticed any specific leaf shape changes?";
+  }
+  
+  if (lowerQ.includes('fertilizer') || lowerQ.includes('nutrient') || lowerQ.includes('yellow')) {
+    return "For nutrient deficiencies, I recommend starting with compost or well-rotted manure. If you suspect nitrogen deficiency (yellowing leaves), try a liquid organic fertilizer. Ensure the soil is not too packed so roots can breathe.";
+  }
+
+  if (lowerQ.includes('water') || lowerQ.includes('dry') || lowerQ.includes('thirsty')) {
+    return "Consistent soil moisture is key. Check the top 2 inches of soil; if dry, water deeply at the base early in the morning to prevent evaporation and fungal growth.";
+  }
+  
+  return "That is a great question. For most smallholder farmers, maintaining consistent soil moisture and using organic mulches like rice straw are the best ways to ensure healthy growth. Is there a specific crop you are worried about?";
 }
 
 export function ChatView() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  /**
+   * Automatically scroll to the bottom when messages change or loading state toggles.
+   * Ensures the latest exchange is always visible to the user.
+   */
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      scrollRef.current.scrollTo({
+        top: scrollRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
     }
   }, [messages, loading]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || loading) return;
 
-    const userMessage: Message = {
+    const userMsg: ChatMessage = {
       id: Date.now().toString(),
       role: 'user',
-      content: input.trim(),
+      content: input,
+      timestamp: Date.now()
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    setMessages(prev => [...prev, userMsg]);
     setInput('');
     setLoading(true);
-    setError(null);
 
     try {
-      const advice = await getFarmingAdvice(userMessage.content);
-      
-      const assistantMessage: Message = {
+      const response = await simulateAdvisorResponse(userMsg.content);
+      const assistantMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: advice.answer,
-        adviceData: advice,
+        content: response,
+        timestamp: Date.now()
       };
-
-      setMessages(prev => [...prev, assistantMessage]);
+      setMessages(prev => [...prev, assistantMsg]);
     } catch (err) {
-      setError("I'm having trouble connecting to the network. Please check your signal and try again.");
+      console.error("Advisor Error:", err);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)]">
-      <div className="flex items-center justify-between border-b border-black/5 pb-4 mb-4">
-        <h2 className="text-3xl font-serif text-ink italic">Advisor</h2>
-        <span className="section-label">AI Expert v1.0</span>
+    <div className="flex flex-col h-full bg-white relative">
+      {/* Header */}
+      <div className="px-6 py-4 border-b border-black/5 flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-10">
+        <div className="flex flex-col">
+          <h2 className="text-2xl font-serif text-ink italic leading-none">Field Advisor</h2>
+          <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500 mt-1">Live Assistant</span>
+        </div>
+        <div className="p-2 border border-black/5 rounded-full">
+          <Bot size={20} className="text-accent" />
+        </div>
       </div>
 
+      {/* Messages Area */}
       <div 
         ref={scrollRef}
-        className="flex-1 overflow-y-auto space-y-6 pb-6 pr-2 scrollbar-hide"
+        className="flex-1 overflow-y-auto px-6 py-8 space-y-8 no-scrollbar pb-32"
       >
-        {messages.length === 0 && (
-          <div className="h-full flex flex-col items-center justify-center text-center space-y-4 opacity-30 px-8">
-            <MessageSquare size={48} strokeWidth={1} />
-            <p className="font-serif italic text-lg leading-relaxed">
-              Ask about planting schedules, pest control, or soil health. I'm here to help you grow.
-            </p>
-          </div>
-        )}
-
         <AnimatePresence initial={false}>
-          {messages.map((m) => (
+          {messages.length === 0 && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="h-full flex flex-col items-center justify-center text-center space-y-4 opacity-30 select-none pt-20"
+            >
+              <Sprout size={48} strokeWidth={1} />
+              <p className="font-serif italic">Ask anything about your crops.</p>
+            </motion.div>
+          )}
+
+          {messages.map((msg) => (
             <motion.div
-              key={m.id}
+              key={msg.id}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
-              <div className={`max-w-[85%] rounded-2xl p-4 ${
-                m.role === 'user' 
-                  ? 'bg-accent text-white rounded-tr-none' 
-                  : 'bg-white border border-black/5 rounded-tl-none shadow-sm'
-              }`}>
-                <div className="flex items-center gap-2 mb-2">
-                  {m.role === 'user' ? <User size={12} /> : <Bot size={12} className="text-accent" />}
-                  <span className="text-[10px] font-black uppercase tracking-widest opacity-50">
-                    {m.role === 'user' ? 'You' : 'AgriAssist'}
-                  </span>
+              <div className={`max-w-[85%] flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 border border-black/5 ${msg.role === 'user' ? 'bg-accent/10' : 'bg-clay/10'}`}>
+                  {msg.role === 'user' ? <User size={14} className="text-accent" /> : <Bot size={14} className="text-clay" />}
                 </div>
-                
-                <p className="text-sm leading-relaxed whitespace-pre-wrap font-sans">
-                  {m.content}
-                </p>
-
-                {m.adviceData && (
-                  <div className="mt-4 space-y-4 pt-4 border-t border-black/5">
-                    {m.adviceData.whatYouShouldDo.length > 0 && (
-                      <div className="space-y-2">
-                        <span className="section-label text-[8px]">Actionable Steps</span>
-                        <ul className="space-y-1">
-                          {m.adviceData.whatYouShouldDo.map((step, i) => (
-                            <li key={i} className="text-[13px] flex gap-2">
-                              <span className="text-accent text-[10px]">•</span>
-                              <span className="text-ink/70 italic font-serif">{step}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                )}
+                <div className={`p-4 rounded-2xl ${
+                  msg.role === 'user' 
+                    ? 'bg-accent text-white rounded-tr-none' 
+                    : 'bg-surface border border-black/5 text-ink rounded-tl-none font-serif italic text-lg shadow-sm'
+                }`}>
+                  <p className="text-sm leading-relaxed">{msg.content}</p>
+                </div>
               </div>
             </motion.div>
           ))}
@@ -125,55 +133,46 @@ export function ChatView() {
 
         {loading && (
           <motion.div 
-            initial={{ opacity: 0 }}
+            initial={{ opacity: 0 }} 
             animate={{ opacity: 1 }}
-            className="flex justify-start"
+            className="flex justify-start gap-3"
           >
-            <div className="bg-white border border-black/5 rounded-2xl rounded-tl-none p-4 shadow-sm">
-              <div className="flex items-center gap-3">
-                <Loader2 size={16} className="animate-spin text-accent" />
-                <span className="text-[10px] font-black uppercase tracking-widest text-ink/30">Thinking...</span>
-              </div>
+            <div className="w-8 h-8 rounded-full bg-clay/10 flex items-center justify-center border border-black/5">
+              <Loader2 size={14} className="text-clay animate-spin" />
             </div>
-          </motion.div>
-        )}
-
-        {error && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex justify-center"
-          >
-            <div className="bg-clay/10 text-clay border border-clay/20 rounded-lg p-3 text-[11px] font-medium flex items-center gap-2">
-              <AlertCircle size={14} />
-              {error}
+            <div className="bg-surface border border-black/5 p-4 rounded-2xl rounded-tl-none shadow-sm">
+              <div className="flex gap-1">
+                <span className="w-1 h-1 bg-ink/20 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-1 h-1 bg-ink/20 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-1 h-1 bg-ink/20 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              </div>
             </div>
           </motion.div>
         )}
       </div>
 
-      <form 
-        onSubmit={handleSubmit}
-        className="relative mt-4"
-      >
-        <input 
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask about your crops..."
-          className="w-full bg-white border border-black/10 p-5 pr-14 text-sm font-sans rounded-full shadow-lg focus:outline-none focus:border-accent transition-all ring-accent/5 focus:ring-4"
-          disabled={loading}
-        />
-        <button 
-          type="submit"
-          disabled={!input.trim() || loading}
-          className={`absolute right-2 top-1/2 -translate-y-1/2 p-3 bg-accent text-white rounded-full transition-all ${
-            !input.trim() || loading ? 'opacity-20 translate-x-2' : 'opacity-100 hover:shadow-xl active:scale-90'
-          }`}
-        >
-          <Send size={18} />
-        </button>
-      </form>
+      {/* Input Area */}
+      <div className="p-4 border-t border-black/5 bg-white sticky bottom-0 z-20">
+        <form onSubmit={handleSend} className="relative flex items-center max-w-xl mx-auto w-full">
+          <input
+            type="text"
+            id="chat-input"
+            autoComplete="off"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Type your question..."
+            className="w-full bg-surface border border-black/5 rounded-full px-6 py-4 pr-14 text-sm focus:outline-none focus:border-accent transition-colors shadow-inner"
+          />
+          <button
+            type="submit"
+            id="chat-send"
+            disabled={!input.trim() || loading}
+            className="absolute right-2 p-3 bg-accent text-white rounded-full disabled:opacity-30 disabled:grayscale transition-all active:scale-95 shadow-md"
+          >
+            <Send size={18} />
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

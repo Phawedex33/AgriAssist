@@ -7,11 +7,36 @@ import React, { useState, useRef, useCallback } from 'react';
 import { Camera, Upload, Loader2, CheckCircle2, AlertCircle, RefreshCcw, Crop as CropIcon, Check, ZoomIn, ZoomOut, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Cropper, { Area } from 'react-easy-crop';
-import { diagnoseCrop } from '../services/geminiService';
 import { DiagnosisResult } from '../types';
 import { getCroppedImg } from '../lib/cropImage';
 import { saveDiagnosis } from '../services/firebaseService';
 import { auth } from '../lib/firebase';
+
+/**
+ * Simulated diagnosis function for demonstration purposes.
+ * Replaces live Gemini AI calls to ensure zero-dependency demo availability.
+ */
+async function simulateDiagnosis(): Promise<DiagnosisResult> {
+  await new Promise(resolve => setTimeout(resolve, 2500));
+  return {
+    problem: "Early Blight Suspected",
+    diseaseName: "Early Blight (Alternaria solani)",
+    cause: "Common fungal issue caused by persistent moisture and high humidity. It typically starts as small brown spots on older growth.",
+    whatToDo: [
+      "Prune and destroy infected leaves immediately.",
+      "Water at the base of the plant to keep foliage dry.",
+      "Apply localized fungicide or neem oil solution."
+    ],
+    treatmentPlan: "Immediate pruning followed by consistent monitoring and base-watering to reduce leaf dampness.",
+    prevention: [
+      "Rotate crops annually to break the pathogen cycle.",
+      "Improve spacing for better ventilation.",
+      "Clear soil of debris after every harvest."
+    ],
+    confidence: 0.88,
+    cropType: "Solanaceous Crop"
+  };
+}
 
 export function DiagnosisView() {
   const [loading, setLoading] = useState(false);
@@ -70,9 +95,9 @@ export function DiagnosisView() {
       const fullDataUrl = `data:${fileType};base64,${base64}`;
       setImagePreview(fullDataUrl);
       
-      // Step 2: Request AI analysis focusing on user's selection
-      console.log("Analyzing crop sample...");
-      const diagnosis = await diagnoseCrop(base64, fileType);
+      // Step 2: Request simulated analysis
+      console.log("Analyzing crop sample locally...");
+      const diagnosis = await simulateDiagnosis();
       
       // Step 3: Present findings to the user
       setResult(diagnosis);

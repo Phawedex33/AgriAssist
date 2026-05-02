@@ -207,6 +207,16 @@ export default function App() {
         </motion.button>
 
         <motion.button 
+          id="nav-chat"
+          onClick={() => setActiveView('chat')}
+          whileTap={{ scale: 0.9 }}
+          className={`bottom-nav-item ${activeView === 'chat' ? 'active' : ''}`}
+        >
+          <MessageSquare size={22} strokeWidth={activeView === 'chat' ? 2.5 : 2} />
+          <span>Advisor</span>
+        </motion.button>
+
+        <motion.button 
           id="nav-history"
           onClick={() => setActiveView('history')}
           whileTap={{ scale: 0.9 }}

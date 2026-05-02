@@ -7,7 +7,12 @@ service cloud.firestore {
     }
 
     // 1. Global Helpers
-    function isSignedIn() { return request.auth != null; }
+    function isSignedIn() { 
+      return request.auth != null && (
+        request.auth.token.email_verified == true || 
+        request.auth.token.firebase.sign_in_provider == 'anonymous'
+      ); 
+    }
     function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
     function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
     function incoming() { return request.resource.data; }
@@ -16,12 +21,14 @@ service cloud.firestore {
     // 2. Entity Validators
     function isValidUser(data) {
       return data.keys().hasAll(['uid', 'language', 'primaryCrop', 'createdAt', 'updatedAt'])
-             && data.keys().size() == 5
              && data.uid == request.auth.uid
              && data.language in ['English', 'Swahili']
              && data.primaryCrop is string && data.primaryCrop.size() <= 100
-             && data.createdAt == request.time
-             && (data.updatedAt == request.time || data.updatedAt == data.createdAt);
+             && (!data.keys().contains('location') || (
+                data.location.keys().hasAll(['lat', 'lon']) &&
+                data.location.lat is number &&
+                data.location.lon is number
+             ));
     }
 
     function isValidDiagnosis(data) {
@@ -40,13 +47,25 @@ service cloud.firestore {
              && data.timestamp == request.time;
     }
 
+    function isValidSchedule(data) {
+      return data.keys().hasAll(['userId', 'cropName', 'frequency', 'preferredTime', 'createdAt'])
+             && data.userId == request.auth.uid
+             && data.cropName is string && data.cropName.size() <= 100
+             && data.frequency in ['daily', 'twice-daily', 'alternate-days', 'weekly']
+             && data.preferredTime is string && data.preferredTime.matches('^[0-9]{2}:[0-9]{2}$');
+    }
+
     // 3. Match Blocks
     match /users/{userId} {
       allow get: if isOwner(userId) && isValidId(userId);
-      allow create: if isOwner(userId) && isValidId(userId) && isValidUser(incoming());
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUser(incoming())
+                       && incoming().createdAt == request.time
+                       && incoming().updatedAt == request.time;
       allow update: if isOwner(userId) && isValidId(userId) && isValidUser(incoming())
                        && incoming().uid == existing().uid
-                       && (incoming().diff(existing()).affectedKeys().hasOnly(['language', 'primaryCrop', 'updatedAt']));
+                       && incoming().createdAt == existing().createdAt
+                       && incoming().updatedAt == request.time
+                       && (incoming().diff(existing()).affectedKeys().hasOnly(['language', 'primaryCrop', 'location', 'updatedAt']));
       
       // Subcollections
       match /diagnoses/{diagnosisId} {
@@ -60,6 +79,17 @@ service cloud.firestore {
         allow list: if isOwner(userId) && resource.data.userId == request.auth.uid;
         allow create: if isOwner(userId) && isValidId(messageId) && isValidMessage(incoming());
         allow get, update, delete: if false;
+      }
+
+      match /schedules/{scheduleId} {
+        allow list: if isOwner(userId) && (resource == null || resource.data.userId == request.auth.uid);
+        allow get: if isOwner(userId) && resource.data.userId == request.auth.uid && isValidId(scheduleId);
+        allow create: if isOwner(userId) && isValidId(scheduleId) && isValidSchedule(incoming())
+                         && incoming().createdAt == request.time;
+        allow update: if isOwner(userId) && isValidId(scheduleId) && isValidSchedule(incoming())
+                         && incoming().createdAt == existing().createdAt
+                         && (incoming().diff(existing()).affectedKeys().hasOnly(['cropName', 'frequency', 'preferredTime', 'notes']));
+        allow delete: if isOwner(userId) && existing().userId == request.auth.uid;
       }
     }
   }

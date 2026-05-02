@@ -18,6 +18,19 @@ export interface DiagnosisResult {
 }
 
 /**
+ * Custom watering schedule for a crop.
+ */
+export interface WateringSchedule {
+  id: string;
+  userId: string;
+  cropName: string;
+  frequency: 'daily' | 'twice-daily' | 'alternate-days' | 'weekly';
+  preferredTime: string; // e.g., "06:00"
+  notes?: string;
+  createdAt: number;
+}
+
+/**
  * Result of a general farming advice query.
  */
 export interface AdviceResult {
